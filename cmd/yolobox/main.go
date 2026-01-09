@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -74,6 +75,93 @@ func (s *stringSliceFlag) Set(value string) error {
 
 var errHelp = errors.New("help requested")
 
+// Version check cache
+type versionCache struct {
+	LatestVersion string    `json:"latest_version"`
+	CheckedAt     time.Time `json:"checked_at"`
+}
+
+const versionCheckInterval = 24 * time.Hour
+
+func versionCachePath() string {
+	configDir, _ := os.UserConfigDir()
+	return filepath.Join(configDir, "yolobox", "version-check.json")
+}
+
+func checkForUpdates() {
+	// Don't block on version check - run with a short timeout
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		doVersionCheck()
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		// Timeout - skip update check
+	}
+}
+
+func doVersionCheck() {
+	cachePath := versionCachePath()
+
+	// Try to read cache
+	var cache versionCache
+	if data, err := os.ReadFile(cachePath); err == nil {
+		if err := json.Unmarshal(data, &cache); err == nil {
+			// Cache is valid, check if it's fresh enough
+			if time.Since(cache.CheckedAt) < versionCheckInterval {
+				// Use cached version
+				showUpdateMessage(cache.LatestVersion)
+				return
+			}
+		}
+	}
+
+	// Fetch latest version from GitHub
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get("https://api.github.com/repos/finbarr/yolobox/releases/latest")
+	if err != nil {
+		return // Silently fail
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return
+	}
+
+	var release struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return
+	}
+
+	latestVersion := strings.TrimPrefix(release.TagName, "v")
+
+	// Update cache
+	cache = versionCache{
+		LatestVersion: latestVersion,
+		CheckedAt:     time.Now(),
+	}
+	if data, err := json.Marshal(cache); err == nil {
+		os.MkdirAll(filepath.Dir(cachePath), 0755)
+		os.WriteFile(cachePath, data, 0644)
+	}
+
+	showUpdateMessage(latestVersion)
+}
+
+func showUpdateMessage(latestVersion string) {
+	currentVersion := strings.TrimPrefix(Version, "v")
+	if latestVersion != "" && latestVersion != currentVersion && latestVersion > currentVersion {
+		fmt.Fprintf(os.Stderr, "\n%s💡 yolobox v%s available:%s https://github.com/finbarr/yolobox/releases/tag/v%s\n",
+			colorYellow, latestVersion, colorReset, latestVersion)
+		fmt.Fprintf(os.Stderr, "   Run %syolobox upgrade%s to update\n\n", colorBold, colorReset)
+	}
+}
+
 func main() {
 	os.Exit(run())
 }
@@ -95,6 +183,13 @@ func run() int {
 
 func runCmd() error {
 	args := os.Args[1:]
+
+	// Check for updates (skip for version/help/upgrade commands)
+	skipCheck := len(args) > 0 && (args[0] == "version" || args[0] == "help" || args[0] == "upgrade")
+	if !skipCheck {
+		checkForUpdates()
+	}
+
 	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
 		cfg, rest, err := parseBaseFlags("yolobox", args)
 		if err != nil {

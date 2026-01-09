@@ -13,7 +13,7 @@ Run [Claude Code](https://claude.ai/code), [Codex](https://openai.com/index/code
 
 ## The Problem
 
-AI coding agents are incredibly powerful when you let them run commands without asking permission. But one misinterpreted prompt and `rm -rf ~` later, you're restoring from backup.
+AI coding agents are incredibly powerful when you let them run commands without asking permission. But one misinterpreted prompt and `rm -rf ~` later, you're restoring from backup (yea right, as if you have backups lol).
 
 ## The Solution
 

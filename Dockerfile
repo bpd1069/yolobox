@@ -53,6 +53,14 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
+# Install global npm packages (as root, before creating user)
+RUN npm install -g \
+    @anthropic-ai/claude-code \
+    typescript \
+    ts-node \
+    yarn \
+    pnpm
+
 # Create yolo user with passwordless sudo
 RUN useradd -m -s /bin/bash yolo \
     && echo "yolo ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/yolo \
@@ -62,17 +70,8 @@ RUN useradd -m -s /bin/bash yolo \
 RUN mkdir -p /workspace /output /secrets \
     && chown yolo:yolo /workspace /output
 
-# Install global npm packages as yolo user
 USER yolo
 WORKDIR /home/yolo
-
-# Install Claude Code and other useful global packages
-RUN npm install -g \
-    @anthropic-ai/claude-code \
-    typescript \
-    ts-node \
-    yarn \
-    pnpm
 
 # Set up a nice prompt
 RUN echo 'PS1="\\[\\033[1;35m\\]yolobox\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]\\$ "' >> ~/.bashrc \

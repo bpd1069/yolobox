@@ -106,3 +106,5 @@ Document solutions here when something takes multiple attempts to figure out.
 - **SIGKILL in docker build but not docker run?** Use multi-stage build. Memory accumulates across layers; isolate heavy installers in a separate stage and COPY the result.
 - **Claude Code config lives in TWO places**: `~/.claude/` (settings, history) AND `~/.claude.json` (onboarding state, preferences). Mount both.
 - **Claude Code needs writable config**: Can't mount `~/.claude` read-only; Claude writes to it at runtime. Solution: mount to staging area (`/host-claude/`) and copy on container start via entrypoint.
+- **OAuth tokens on macOS are in Keychain**: Can't copy them to container. On Linux, Claude stores creds in `~/.claude/.credentials.json`. Users must either use API key or `/login` inside container.
+- **Colima defaults to 2GB RAM**: Claude Code gets OOM killed. Need 4GB+. yolobox now warns if Docker has < 4GB.

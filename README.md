@@ -132,6 +132,8 @@ Priority: CLI flags > project config > global config > defaults.
 - **macOS**: Docker Desktop, OrbStack, or Colima
 - **Linux**: Docker or Podman
 
+> **Memory:** Claude Code needs **4GB+ RAM** allocated to Docker. Colima defaults to 2GB which will cause OOM kills. Increase with: `colima stop && colima start --memory 8`
+
 ## Threat Model
 
 **What yolobox protects:**

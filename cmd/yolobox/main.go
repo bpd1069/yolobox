@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -471,6 +472,10 @@ func runCommand(cfg Config, command []string, interactive bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Warn if Docker has low memory (can cause OOM with Claude)
+	checkDockerMemory(cfg.Runtime)
+
 	args, err := buildRunArgs(cfg, projectDir, command, interactive)
 	if err != nil {
 		return err
@@ -785,6 +790,31 @@ func execRuntime(runtime string, args []string) error {
 		return err
 	}
 	return execCommand(runtimePath, args)
+}
+
+// checkDockerMemory warns if Docker has less than 4GB RAM available
+func checkDockerMemory(runtime string) {
+	runtimePath, err := resolveRuntime(runtime)
+	if err != nil {
+		return
+	}
+
+	cmd := exec.Command(runtimePath, "info", "--format", "{{.MemTotal}}")
+	output, err := cmd.Output()
+	if err != nil {
+		return
+	}
+
+	memBytes, err := strconv.ParseInt(strings.TrimSpace(string(output)), 10, 64)
+	if err != nil {
+		return
+	}
+
+	memGB := float64(memBytes) / (1024 * 1024 * 1024)
+	if memGB < 3.5 {
+		warn("Docker has only %.1fGB RAM. Claude Code may get OOM killed.", memGB)
+		warn("Increase Docker/Colima memory to 4GB+ for best results.")
+	}
 }
 
 func execCommand(bin string, args []string) error {

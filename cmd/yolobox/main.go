@@ -475,6 +475,28 @@ func mergeConfigFile(path string, cfg *Config, restricted bool) error {
 			safeMounts = append(safeMounts, m)
 		}
 		fileCfg.Mounts = safeMounts
+
+		// Security: Project config cannot set runtime
+		if fileCfg.Runtime != "" {
+			warn("Ignoring restricted field in project config: runtime=%q (use global config or CLI flags)", fileCfg.Runtime)
+			fileCfg.Runtime = ""
+		}
+
+		// Security: Image cannot start with - (argument injection)
+		if strings.HasPrefix(fileCfg.Image, "-") {
+			warn("Ignoring invalid image in project config: %q", fileCfg.Image)
+			fileCfg.Image = ""
+		}
+
+		// Security: Project config cannot enable sensitive mounts
+		if fileCfg.SSHAgent {
+			warn("Ignoring restricted field in project config: ssh_agent=true (use global config or CLI flags)")
+			fileCfg.SSHAgent = false
+		}
+		if fileCfg.ClaudeConfig {
+			warn("Ignoring restricted field in project config: claude_config=true (use global config or CLI flags)")
+			fileCfg.ClaudeConfig = false
+		}
 	}
 
 	mergeConfig(cfg, fileCfg)

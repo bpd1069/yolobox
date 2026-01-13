@@ -225,6 +225,46 @@ This builds `yolobox/base:latest` locally.
 
 Because you want to tell your AI agent "just do it" without consequences. YOLO, but in a box.
 
+## Development
+
+### Building
+
+```bash
+make build          # Build binary
+make test           # Run tests
+make lint           # Run linters
+make image          # Build Docker image
+make install        # Install to ~/.local/bin
+```
+
+### Versioning
+
+Version is derived automatically from git tags via `git describe`:
+- Tagged commit: `v0.1.1`
+- After tag: `v0.1.1-3-gead833b` (3 commits after tag)
+- Uncommitted changes: adds `-dirty`
+
+**No files to edit for releases.** The Makefile handles it.
+
+### Releasing
+
+To release a new version:
+
+```bash
+git tag v0.1.2
+git push origin master --tags
+```
+
+That's it. GitHub Actions will automatically:
+1. Build binaries for linux/darwin × amd64/arm64
+2. Create a GitHub release with binaries and checksums
+3. Build and push Docker image to `ghcr.io/finbarr/yolobox`
+
+**Version policy:**
+- Patch bump (`0.1.x`): Bug fixes, security fixes
+- Minor bump (`0.x.0`): New features
+- Major bump (`x.0.0`): Breaking changes
+
 ## License
 
 MIT

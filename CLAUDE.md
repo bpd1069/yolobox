@@ -13,6 +13,16 @@ make install        # Build and install to ~/.local/bin
 make clean          # Remove built binary
 ```
 
+## Versioning & Releases
+
+See the [Development section in README.md](README.md#development) for versioning policy and release process.
+
+**TL;DR:** Tag and push. No files to edit.
+```bash
+git tag v0.1.2
+git push origin master --tags
+```
+
 ## Workflow
 
 **Always commit changes after completing work.** Don't leave uncommitted changes - if you modified files, commit them before finishing.
